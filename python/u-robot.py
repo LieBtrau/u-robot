@@ -40,9 +40,34 @@ def speakEvent(event):
     if str(event.location) == 'None':
         return
     sentence = TITLE + ', you have a ' + event.subject + ' meeting.\n'
-    duetime = event.start - datetime.now(get_localzone())
-    sentence += 'This meeting will start in {0} hours.'.format(int(duetime.total_seconds() / 3600))
+    startseconds = (event.start - datetime.now(get_localzone())).total_seconds()
+    endseconds = (event.end - datetime.now(get_localzone())).total_seconds()
+    minutes = int(round(startseconds / 60, 0))
+    hours = int(round(startseconds / 3600, 0))
+    if startseconds < 0 and endseconds > 0:
+        sentence += 'This started {0} minutes ago.'.format(-minutes)
+    elif startseconds > 0 and startseconds < 3600:
+        sentence += 'This meeting will start in {0} minutes.'.format(minutes)
+    elif startseconds > 3600:
+        sentence += 'This meeting will start in {0} hours.'.format(hours)
+    else:
+        return
     speak(sentence)
+
+
+def giveFiveMinuteWarning(fiveminuteeventlist):
+    for event in fiveminuteeventlist:
+        duetime = event.start - datetime.now(get_localzone())
+        if duetime.total_seconds() < 300:
+            if validEvent(event):
+                speakEvent(event)
+                s = "{start} {stop} - {subject} - {location}".format(
+                    start=event.start,
+                    stop=event.end,
+                    subject=event.subject,
+                    location=event.location)
+                print s
+            fiveminuteeventlist.remove(event)
 
 
 # The code is open source, but the url, username and password are not.
@@ -51,29 +76,25 @@ config = ConfigParser.RawConfigParser()
 config.read('example.cfg')
 url = unicode(config.get('Section1', 'ExchangeServerUrl'))
 username = unicode(config.get('Section1', 'UserName'))
+startdate=datetime.now(get_localzone())
 # The password is read at startup of the program.
 PASSWORD = getpass.getpass('Password: ')
-TITLE = 'Master'
+TITLE = 'master'
 
-try:
-    eventList = getCalendarEvents(url=url,
-                                  username=username,
-                                  password=PASSWORD,
-                                  startdate=datetime.now(),
-                                  duration=timedelta(days=1))
-except:
-    speak('I am sorry '+ TITLE + ' , but I have no access to your calendar.')
-    exit()
+speak('Hello, ' + TITLE)
+#try:
+eventList = getCalendarEvents(url=url,
+                              username=username,
+                              password=PASSWORD,
+                              startdate=datetime.utcnow()-timedelta(hours=1),
+                              duration=timedelta(days=1))
+# except:
+#     speak('I am sorry ' + TITLE + ' , but I have no access to your calendar.')
+#     exit()
 
 if eventList.count == 0:
-    speak('You are so lucky today '+ TITLE + '.  There are no meetings scheduled for you.')
+    speak('You are so lucky today ' + TITLE + '.  There are no meetings scheduled for you.')
 
-for event in eventList.events:
-    s = "{start} {stop} - {subject} - {location}".format(
-        start=event.start,
-        stop=event.end,
-        subject=event.subject,
-        location=event.location)
-    print s
-    if (validEvent(event)):
-        speakEvent(event)
+fiveMinuteWarningList = eventList.events[:]
+while True:
+    giveFiveMinuteWarning(fiveMinuteWarningList)
