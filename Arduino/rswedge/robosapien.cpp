@@ -9,13 +9,18 @@ void Robosapien::init()
 {
   pinMode(irPin, OUTPUT);
   digitalWrite(irPin, HIGH);
-  timeout = millis();
+  keepAliveTimeout = actionTimeout = millis();
 }
 
-void Robosapien::send(RoboCommand cmd)
+bool Robosapien::send(RoboCommand cmd)
 {
   byte cmdByte=cmd;                               // to stop compiler warning
   const int BITTIME = 850;                        // Bit time (Theoretically 833 but 516 works for transmission and is faster)
+
+  if(millis() < actionTimeout + ACTION_TIMEOUT)
+  {
+    return false;
+  }
   digitalWrite(irPin, LOW);
   delayMicroseconds(BITTIME<<3);                  // wait 8x bit time
   for (byte i = 0; i < 8; i++)
@@ -31,14 +36,15 @@ void Robosapien::send(RoboCommand cmd)
     cmdByte <<=1;
   }
   digitalWrite(irPin, HIGH);
-  delay(250); // Give a 1/4 sec before next
+  actionTimeout = millis();
+  return true;
 }
 
 void Robosapien::update()
 {
-  if (millis() - timeout > 60000)
+  if (millis() - keepAliveTimeout > KEEPALIVE_TIMEOUT)
   {
-    timeout = millis();
+    keepAliveTimeout = millis();
     send(NoOp);
   }
 }

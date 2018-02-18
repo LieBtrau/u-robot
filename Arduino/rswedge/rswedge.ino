@@ -1,22 +1,21 @@
 #include "robosapien.h"
+#include <DigiCDC.h>
 
 Robosapien robo(0);
-unsigned long timeout;
 
 void setup()
 {
   robo.init();
-  timeout=millis();
+  SerialUSB.begin();
 }
-
-
 
 void loop()
 {
   robo.update();
-  if (millis() - timeout > 25000)
+  if (SerialUSB.available())
   {
-    timeout = millis();
-    robo.send(Robosapien::Burp);
+    char c = SerialUSB.read();
+    SerialUSB.write(c);
+    robo.send((Robosapien::RoboCommand)c);
   }
 }
