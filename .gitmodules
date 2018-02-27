@@ -1,0 +1,3 @@
+[submodule "Arduino/Arduino-CommandLine"]
+	path = Arduino/Arduino-CommandLine
+	url = https://github.com/basilfx/Arduino-CommandLine.git
