@@ -1,3 +1,12 @@
+/* Robosapien wedge
+ * Interface : virutal serial port 9600 8N1
+ * Commands:
+ *  audio 0 //audio from audio jack
+ *  audio 1 //audio from Robosapien
+ *  See robosapien.h for valid actions.
+ *  e.g.
+ *  action 202  //0xCA : whistle
+ */
 #include "robosapien.h"
 #include <DigiCDC.h>        //Virtual serial port
 #include "CommandLine.h"
