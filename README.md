@@ -1,15 +1,15 @@
 # u-robot
 Personal assistent in the shape of a Wowwee Robosapien, controlled by an Raspberry Pi in its backpack
 
-#Installation
+# Installation
 1. sudo apt-get install libxml2 libxml2-dev libxslt1-dev python-pip python-dev zlib1g-dev && pip install lxml pyexchange
 2. download: https://pypi.python.org/packages/source/t/tzlocal/tzlocal-1.2.tar.gz
 3. extract it and run sudo python setup.py install
 
-#Info
+# Info
 [Python Exchange Web services library](https://pyexchange.readthedocs.org/en/latest/)
 
-#Raspberry Pi
+# Raspberry Pi
 [Shenanigans](http://www.bookofthefuture.co.uk/2013/11/roboraspbian-part-6-software-shenanigans/)
 [Element14](https://www.element14.com/community/community/raspberry-pi/blog/2014/01/10/raspberry-robosapian?CMP=SOM-RASPI-ROBOSAPIAN)
 [Linux Remote Control (lirc)](http://oldgreygeektest.blogspot.be/2013/12/raspberry-pi-and-robotsapien-and-lirc.html)
