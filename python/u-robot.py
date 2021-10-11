@@ -1,17 +1,18 @@
+#!/usr/bin/env python3
+#
 # Info
 #	Python Exchange Web services library: https://pyexchange.readthedocs.org/en/latest/
-# Installation
-#	sudo apt-get install libxml2 libxml2-dev libxslt1-dev python-pip python-dev zlib1g-dev && pip install lxml pyexchange
-#	download: https://pypi.python.org/packages/source/t/tzlocal/tzlocal-1.2.tar.gz
-#	extract it and run sudo python setup.py install
+# Installation:
+#	sudo apt install libxml2 libxml2-dev libxslt1-dev python3-pip python-dev zlib1g-dev && pip install lxml pyexchange tzlocal configparser
+#
 from pyexchange import Exchange2010Service, ExchangeNTLMAuthConnection
-from pytz import timezone
 from datetime import datetime, timedelta
 from tzlocal import get_localzone
-import getpass, ConfigParser, subprocess
+import configparser, getpass, subprocess, sys
 
 
 def speak(sentence):
+    print(sentence)
     p = subprocess.Popen('pico2wave -w lookdave.wav \'' + sentence + '\' && aplay lookdave.wav', shell=True,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     retval = p.wait()
@@ -25,8 +26,8 @@ def getCalendarEvents(url, username, password, startdate, duration):
                                             password=password)
     service = Exchange2010Service(connection)
     events = service.calendar().list_events(
-        start=get_localzone().localize(startdate),
-        end=get_localzone().localize(startdate + duration),
+        start=startdate.astimezone(),
+        end=(startdate + duration).astimezone(),
         details=True
     )
     return events
@@ -36,7 +37,7 @@ def validEvent(event):
     return not str(event.subject).startswith('Canceled')
 
 
-def speakEvent(event):
+def speakEvent(event, TITLE):
     if str(event.location) == 'None':
         return
     sentence = TITLE + ', you have a ' + event.subject + ' meeting.\n'
@@ -55,46 +56,53 @@ def speakEvent(event):
     speak(sentence)
 
 
-def giveFiveMinuteWarning(fiveminuteeventlist):
+def giveFiveMinuteWarning(fiveminuteeventlist, TITLE):
     for event in fiveminuteeventlist:
         duetime = event.start - datetime.now(get_localzone())
         if duetime.total_seconds() < 300:
             if validEvent(event):
-                speakEvent(event)
+                speakEvent(event, TITLE)
                 s = "{start} {stop} - {subject} - {location}".format(
                     start=event.start,
                     stop=event.end,
                     subject=event.subject,
                     location=event.location)
-                print s
+                print(s)
             fiveminuteeventlist.remove(event)
 
+def main(argv):
+    # The code is open source, but the url, username and password are not.
+    # The url and username are stored in a separate config file.
+    config = configparser.RawConfigParser()
+    config.read('outlook.live.cfg')
+    url = str(config.get('Section1', 'ExchangeServerUrl'))
+    username = str(config.get('Section1', 'UserName'))
 
-# The code is open source, but the url, username and password are not.
-# The url and username are stored in a separate config file.
-config = ConfigParser.RawConfigParser()
-config.read('example.cfg')
-url = unicode(config.get('Section1', 'ExchangeServerUrl'))
-username = unicode(config.get('Section1', 'UserName'))
-startdate=datetime.now(get_localzone())
-# The password is read at startup of the program.
-PASSWORD = getpass.getpass('Password: ')
-TITLE = 'master'
+    # The password is read at startup of the program.
+    # PASSWORD = getpass.getpass('Password: ')
+    PASSWORD = str(config.get('Section1', 'Password'))
 
-speak('Hello, ' + TITLE)
-#try:
-eventList = getCalendarEvents(url=url,
-                              username=username,
-                              password=PASSWORD,
-                              startdate=datetime.utcnow()-timedelta(hours=1),
-                              duration=timedelta(days=1))
-# except:
-#     speak('I am sorry ' + TITLE + ' , but I have no access to your calendar.')
-#     exit()
+    TITLE = 'master'
 
-if eventList.count == 0:
-    speak('You are so lucky today ' + TITLE + '.  There are no meetings scheduled for you.')
+    speak('Hello, ' + TITLE)
+    try:
+        eventList = getCalendarEvents(url=url,
+                                      username=username,
+                                      password=PASSWORD,
+                                      startdate=datetime.utcnow()-timedelta(hours=1),
+                                      duration=timedelta(days=1))
+    except Exception as ex:
+        speak('I am sorry ' + TITLE + ', but I have no access to your calendar.')
+        print(ex)
+        exit()
+    print("You have " + str(eventList.count) + " events to handle today")
 
-fiveMinuteWarningList = eventList.events[:]
-while True:
-    giveFiveMinuteWarning(fiveMinuteWarningList)
+    if eventList.count == 0:
+        speak('You are so lucky today ' + TITLE + '.  There are no meetings scheduled for you.')
+    else:
+        fiveMinuteWarningList = eventList.events[:]
+        while True:
+            giveFiveMinuteWarning(fiveMinuteWarningList, TITLE)
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
