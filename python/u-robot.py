@@ -6,9 +6,61 @@
 #	sudo apt install libxml2 libxml2-dev libxslt1-dev python3-pip python-dev zlib1g-dev && pip install lxml pyexchange tzlocal configparser
 #
 from pyexchange import Exchange2010Service, ExchangeNTLMAuthConnection
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from tzlocal import get_localzone
 import configparser, getpass, subprocess, sys
+
+
+def getCalendarEvents(url, username, password, startdate, duration):
+    ''' Set up the connection to Exchange
+    Keyword arguments:
+    url -- link to the .asmx file on the exchange server
+    username -- your domain name\\username
+    password -- password
+    startdate -- events will be returned that are ongoing on or started after this date
+    duration -- events will be returned that are ongoing during this period after the start date
+
+    Returns: a list of events, with their timestamps set to UTC time zone.  The trailing +00:00 means that it's UTC.  Without
+                the trailing +00:00 it would mean that the datetime object is agnostic.
+    '''
+    if startdate.tzinfo is None or startdate.tzinfo.utcoffset(startdate) is None:
+        raise ValueError('startdate must have time zone info attached')
+    #Convert to UTC
+    startdate=startdate.astimezone(timezone.utc)
+    connection = ExchangeNTLMAuthConnection(url=url,
+                                            username=username,
+                                            password=password)
+    service = Exchange2010Service(connection)
+    events = service.calendar().list_events(
+        start=startdate,
+        end=startdate + duration,
+        details=True
+    )
+    return events
+
+
+def validEvent(event):
+    #When there's no location, this is likely to be some reminder instead of a real meeting
+    return not str(event.subject).startswith('Canceled') and str(event.location) != 'None'
+
+
+def speakEvent(event, TITLE):
+    meetingTitle = str(event.subject)
+    if meetingTitle.find('meeting') == -1:
+        sentence = TITLE + ', you have a ' + meetingTitle + ' meeting.  '
+    else:
+        sentence = TITLE + ', you have a ' + meetingTitle + '.  '
+    current_utc = datetime.now(timezone.utc) #Could be any time zone, let's stick to UTC here
+    due_time = event.start - current_utc
+    if event.start < current_utc and current_utc < event.end:
+        sentence += 'This started {0} minutes ago.'.format(int(-due_time.total_seconds()/60))
+    elif due_time < timedelta(hours=1):
+        sentence += 'This meeting will start in {0} minutes.'.format(int(due_time.total_seconds()/60))
+    elif due_time > timedelta(hours=1):
+        sentence += 'This meeting will start in {0} hours.'.format(int(due_time.total_seconds()/3600))
+    else:
+        return
+    speak(sentence)
 
 
 def speak(sentence):
@@ -19,62 +71,11 @@ def speak(sentence):
     return retval
 
 
-def getCalendarEvents(url, username, password, startdate, duration):
-    # Set up the connection to Exchange
-    connection = ExchangeNTLMAuthConnection(url=url,
-                                            username=username,
-                                            password=password)
-    service = Exchange2010Service(connection)
-    events = service.calendar().list_events(
-        start=startdate.astimezone(),
-        end=(startdate + duration).astimezone(),
-        details=True
-    )
-    return events
-
-
-def validEvent(event):
-    return not str(event.subject).startswith('Canceled')
-
-
-def speakEvent(event, TITLE):
-    if str(event.location) == 'None':
-        return
-    sentence = TITLE + ', you have a ' + event.subject + ' meeting.\n'
-    startseconds = (event.start - datetime.now(get_localzone())).total_seconds()
-    endseconds = (event.end - datetime.now(get_localzone())).total_seconds()
-    minutes = int(round(startseconds / 60, 0))
-    hours = int(round(startseconds / 3600, 0))
-    if startseconds < 0 and endseconds > 0:
-        sentence += 'This started {0} minutes ago.'.format(-minutes)
-    elif startseconds > 0 and startseconds < 3600:
-        sentence += 'This meeting will start in {0} minutes.'.format(minutes)
-    elif startseconds > 3600:
-        sentence += 'This meeting will start in {0} hours.'.format(hours)
-    else:
-        return
-    speak(sentence)
-
-
-def giveFiveMinuteWarning(fiveminuteeventlist, TITLE):
-    for event in fiveminuteeventlist:
-        duetime = event.start - datetime.now(get_localzone())
-        if duetime.total_seconds() < 300:
-            if validEvent(event):
-                speakEvent(event, TITLE)
-                s = "{start} {stop} - {subject} - {location}".format(
-                    start=event.start,
-                    stop=event.end,
-                    subject=event.subject,
-                    location=event.location)
-                print(s)
-            fiveminuteeventlist.remove(event)
-
 def main(argv):
     # The code is open source, but the url, username and password are not.
     # The url and username are stored in a separate config file.
     config = configparser.RawConfigParser()
-    config.read('outlook.live.cfg')
+    config.read('example.cfg')
     url = str(config.get('Section1', 'ExchangeServerUrl'))
     username = str(config.get('Section1', 'UserName'))
 
@@ -82,27 +83,38 @@ def main(argv):
     # PASSWORD = getpass.getpass('Password: ')
     PASSWORD = str(config.get('Section1', 'Password'))
 
-    TITLE = 'master'
+    TITLE = 'Master'
 
     speak('Hello, ' + TITLE)
     try:
         eventList = getCalendarEvents(url=url,
                                       username=username,
                                       password=PASSWORD,
-                                      startdate=datetime.utcnow()-timedelta(hours=1),
+                                      startdate=datetime.now(get_localzone()),
                                       duration=timedelta(days=1))
     except Exception as ex:
         speak('I am sorry ' + TITLE + ', but I have no access to your calendar.')
         print(ex)
         exit()
-    print("You have " + str(eventList.count) + " events to handle today")
 
     if eventList.count == 0:
         speak('You are so lucky today ' + TITLE + '.  There are no meetings scheduled for you.')
-    else:
+    else:        
+        print('You have ' + str(eventList.count) + ' events to handle today')
         fiveMinuteWarningList = eventList.events[:]
         while True:
-            giveFiveMinuteWarning(fiveMinuteWarningList, TITLE)
+            for event in fiveMinuteWarningList:
+                duetime = event.start - datetime.now(timezone.utc)
+                if duetime < timedelta(minutes = 5):
+                    if validEvent(event):
+                        speakEvent(event, TITLE)
+                        s = "{start} {stop} - {subject} - {location}".format(
+                            start=event.start,
+                            stop=event.end,
+                            subject=event.subject,
+                            location=event.location)
+                        print('Event info: ' + s)
+                    fiveMinuteWarningList.remove(event)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
