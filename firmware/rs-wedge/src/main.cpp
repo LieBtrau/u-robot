@@ -37,7 +37,9 @@ void setup()
 	commandLine.add(action);
 	commandLine.add(audio);
 	pinMode(PIN_AUDIO, OUTPUT);
-	digitalWrite(PIN_AUDIO, HIGH);
+	digitalWrite(PIN_AUDIO, 0);
+	delay(11000); //remain silent during RoboSapien wake-up
+	digitalWrite(PIN_AUDIO, 1);
 }
 
 void loop()
