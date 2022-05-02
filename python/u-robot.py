@@ -60,11 +60,15 @@ def speakEvent(event, TITLE):
     current_utc = datetime.now(timezone.utc)
     due_time = event.start - current_utc
     if event.start < current_utc and current_utc < event.end:
+        # Meeting is ongoing
         if due_time.total_seconds() > 60:
             sentence += 'This started {0} minutes ago.'.format(
                 int(-due_time.total_seconds()/60))
         else:
             sentence += 'This starts now! '
+    elif current_utc > event.end:
+        # Meeting has ended
+        return
     elif due_time < timedelta(hours=1):
         sentence += 'This meeting will start in {0} minutes.'.format(
             int(due_time.total_seconds()/60))
@@ -78,7 +82,7 @@ def speakEvent(event, TITLE):
 
 def speak(sentence):
     logging.info('Robot says: ' + sentence)
-    serialPort = serial.Serial(port = 'COM15', baudrate=9600)
+    serialPort = serial.Serial(port='COM15', baudrate=9600)
     serialPort.write(b'audio 0\r\n')    # Robosapien audio output = PC audio
     engine = pyttsx3.init()
     # voices = engine.getProperty('voices')
@@ -87,8 +91,10 @@ def speak(sentence):
     engine.say(sentence)
     engine.runAndWait()
     engine.stop()
-    serialPort.write(b'audio 1\r\n')    # Robosapien audio output  = Robosapien's own voice
+    # Robosapien audio output  = Robosapien's own voice
+    serialPort.write(b'audio 1\r\n')
     serialPort.close()
+
 
 def main(argv):
     # The code is open source, but the url, username and password are not.
@@ -135,11 +141,10 @@ def main(argv):
                     subject=firstEvent.subject,
                     location=firstEvent.location)
                 logging.info('Event info: ' + event_info)
-                due_time = firstEvent.start - datetime.now(timezone.utc)
-                if(due_time.total_seconds() > 0):
+                if(datetime.now(timezone.utc) < firstEvent.start):
                     # Meeting will be starting soon
                     speakEvent(firstEvent, TITLE)
-                else:
+                elif firstEvent.start < datetime.now(timezone.utc) and datetime.now(timezone.utc) < firstEvent.end:
                     # Meeting is already ongoing
                     ongoing_time = datetime.now(
                         timezone.utc) - firstEvent.start
@@ -148,6 +153,9 @@ def main(argv):
                         speakEvent(firstEvent, TITLE)
                     # Wait until this meeting is over before polling the server again.
                     due_time = firstEvent.end - datetime.now(timezone.utc)
+                else:
+                    # Event already done, sleep the default time
+                    due_time = timedelta(minutes=SERVER_POLL_INTERVAL_MINUTES)
         logging.info('Polling server again in ' +
                      str(int(due_time.total_seconds()))+' seconds.')
         time.sleep(int(due_time.total_seconds()))
