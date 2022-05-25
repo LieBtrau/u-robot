@@ -144,6 +144,7 @@ def main(argv):
                 if(datetime.now(timezone.utc) < firstEvent.start):
                     # Meeting will be starting soon
                     speakEvent(firstEvent, TITLE)
+                    due_time = firstEvent.start - datetime.now(timezone.utc)
                 elif firstEvent.start < datetime.now(timezone.utc) and datetime.now(timezone.utc) < firstEvent.end:
                     # Meeting is already ongoing
                     ongoing_time = datetime.now(
