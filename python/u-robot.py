@@ -3,7 +3,7 @@
 # Info
 #	Python Exchange Web services library: https://pyexchange.readthedocs.org/en/latest/
 # Installation:
-#	sudo apt install libxml2 libxml2-dev libxslt1-dev python3-pip python-dev zlib1g-dev && pip install configparser lxml pyexchange pyserial tzlocal
+#	sudo apt install espeak libxml2 libxml2-dev libxslt1-dev python3-pip python-dev zlib1g-dev && pip install configparser lxml pyexchange pyserial pyttsx3 tzlocal
 #
 from pyexchange import Exchange2010Service, ExchangeNTLMAuthConnection
 from datetime import datetime, timedelta, timezone
@@ -82,7 +82,7 @@ def speakEvent(event, TITLE):
 
 def speak(sentence):
     logging.info('Robot says: ' + sentence)
-    serialPort = serial.Serial(port='COM15', baudrate=9600)
+    serialPort = serial.Serial(port='/dev/ttyACM0', baudrate=9600)
     serialPort.write(b'audio 0\r\n')    # Robosapien audio output = PC audio
     engine = pyttsx3.init()
     # voices = engine.getProperty('voices')
