@@ -5,11 +5,9 @@
 # Installation:
 #	sudo apt install espeak libxml2 libxml2-dev libxslt1-dev python3-pip python-dev zlib1g-dev && pip install configparser lxml pyexchange pyserial pyttsx3 tzlocal
 #
-# This uses NTLM authentication and is for on-premises servers only.  See https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/authentication-and-ews-in-exchange for more information.
+# This uses NTLM authentication and is for on-premises servers only.  
+#   See https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/authentication-and-ews-in-exchange for more information.
 # As an alternative, exchangelib will be used
-# https://resources.hacware.com/connecting-to-the-ews-with-python-using-exchangelib-2/  
-# https://github.com/ecederstrand/exchangelib/issues/566
-# https://stackoom.com/en/question/3icko
 from pyexchange import Exchange2010Service, ExchangeNTLMAuthConnection
 from datetime import datetime, timedelta, timezone
 from tzlocal import get_localzone
