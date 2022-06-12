@@ -10,38 +10,42 @@
 #   https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/how-to-control-access-to-ews-in-exchange
 #
 # Further references and examples:
-# https://resources.hacware.com/connecting-to-the-ews-with-python-using-exchangelib-2/  
 # https://github.com/ecederstrand/exchangelib/issues/566
 # https://stackoom.com/en/question/3icko
 #
 # Installation:
 # pip install exchangelib
-# 
+#
 
-import configparser, logging, sys
-from exchangelib import DELEGATE, Credentials, Account, Configuration
+import configparser
+import logging
+import sys
+from exchangelib import OAuth2Credentials, DELEGATE, Account, Configuration, Identity
+
 
 def main(argv):
     config = configparser.RawConfigParser()
     config.read('example.cfg')
+    username = str(config.get('Section1', 'UserName'))
 
-    # username = str(config.get('Section1', 'UserName'))
-    # credentials = Credentials(
-    #     username = username,
-    #     password = str(config.get('Section1', 'Password'))
-    # )
+    credentials = OAuth2Credentials(
+        client_id=str(config.get('Section1', 'client_id')),
+        client_secret = str(config.get('Section1', 'client_secret')),
+        tenant_id=str(config.get('Section1', 'tenant_id')),
+        identity=Identity(primary_smtp_address=username)
+    )
 
-    # config = Configuration(server='outlook.office365.com', credentials=credentials)
+    config = Configuration(server='outlook.office365.com', credentials=credentials)
 
-    # test_account = Account(
-    #     primary_smtp_address = username,
-    #     config = config,
-    #     autodiscover = False,
-    #     access_type = DELEGATE
-    # )
-    # # Print first 100 inbox messages in reverse order
-    # for item in test_account.inbox.all().order_by('-datetime_received')[:100]:
-    #     print(item.subject, item.body, item.attachments)
+    test_account = Account(
+        primary_smtp_address = username,
+        config = config,
+        autodiscover = False,
+        access_type = DELEGATE
+    )
+    # Print first 100 inbox messages in reverse order
+    for item in test_account.inbox.all().order_by('-datetime_received')[:100]:
+        print(item.subject)
 
 
 if __name__ == '__main__':
