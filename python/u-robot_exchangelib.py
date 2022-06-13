@@ -7,19 +7,18 @@
 # References:
 #   https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/how-to-authenticate-an-ews-application-by-using-oauth
 #   https://ecederstrand.github.io/exchangelib/#oauth-authentication
-#   https://docs.microsoft.com/en-us/exchange/client-developer/exchange-web-services/how-to-control-access-to-ews-in-exchange
 #
-# Further references and examples:
-# https://github.com/ecederstrand/exchangelib/issues/566
-# https://stackoom.com/en/question/3icko
 #
 # Installation:
 # pip install exchangelib
 #
 
+from calendar import month
 import configparser
 import logging
 import sys
+import datetime
+from tzlocal import get_localzone
 from exchangelib import OAuth2Credentials, DELEGATE, Account, Configuration, Identity
 
 
@@ -43,9 +42,15 @@ def main(argv):
         autodiscover = False,
         access_type = DELEGATE
     )
-    # Print first 100 inbox messages in reverse order
-    for item in test_account.inbox.all().order_by('-datetime_received')[:100]:
-        print(item.subject)
+
+    start = datetime.datetime.now(get_localzone())
+    items = test_account.calendar.view(
+        start=start,
+        end=start + datetime.timedelta(weeks=4),
+    )
+    for item in items:
+        print(item.start, item.end, item.subject)
+
 
 
 if __name__ == '__main__':
