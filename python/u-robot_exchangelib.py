@@ -1,15 +1,17 @@
 
 
+import configparser
 import logging
 import sys
 import datetime
 from tzlocal import get_localzone
-import CalendarExchangeLib
+from CalendarExchangeLib import CalendarExchangeLib
 
 def main(argv):
-
+    config = configparser.RawConfigParser()
+    config.read('example.cfg')
+    myCalendar = CalendarExchangeLib(config)
     start = datetime.datetime.now(get_localzone())
-    myCalendar = CalendarExchangeLib.CalendarExchangeLib('example.cfg')
     items = myCalendar.getCalendarEvents(start, datetime.timedelta(weeks = 2))
     for item in items:
         print(item.start, item.end, item.subject)

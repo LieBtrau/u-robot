@@ -12,16 +12,15 @@
 # Installation:
 # pip install exchangelib
 #
-import configparser
 from exchangelib import OAuth2Credentials, DELEGATE, Account, Configuration, Identity
-
+from datetime import timezone
 
 class CalendarExchangeLib:
-    '''Get calendar data from Microsoft 365 using ExchangeLib library'''
+    '''
+    Get calendar data from Microsoft 365 using ExchangeLib library
+    '''
 
-    def __init__(self, config_file):
-        config = configparser.RawConfigParser()
-        config.read(config_file)
+    def __init__(self, config):
         username = str(config.get('Section1', 'UserName'))
 
         credentials = OAuth2Credentials(
@@ -39,5 +38,9 @@ class CalendarExchangeLib:
         )
 
     def getCalendarEvents(self, startdate, duration):
+        if startdate.tzinfo is None or startdate.tzinfo.utcoffset(startdate) is None:
+            raise ValueError('startdate must have time zone info attached')
+        # Convert to UTC
+        startdate = startdate.astimezone(timezone.utc)
         items = self.test_account.calendar.view(start=startdate, end=startdate + duration)
         return items
