@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from tzlocal import get_localzone
-from CalendarPyExchange import CalendarPyExchange
+#from CalendarPyExchange import CalendarPyExchange
+from CalendarExchangeLib import CalendarExchangeLib
 import configparser
 import logging
 import pyttsx3
@@ -65,14 +66,14 @@ def main(argv):
     # The code is open source, but the url, username and password are not.
     # The url and username are stored in a separate config file.
     config = configparser.RawConfigParser()
-    config.read('example_old.cfg')
-    myCalendar = CalendarPyExchange(config)
+    config.read('example.cfg')
+    myCalendar = CalendarExchangeLib(config)
     TITLE = 'Master'
     SERVER_POLL_INTERVAL_MINUTES = 25
     speak('Hello ' + TITLE + '.  How can I be of your service today?')
     while True:
         try:
-            eventList = myCalendar.getCalendarEvents(startdate=datetime.now(get_localzone()),
+            events = myCalendar.getCalendarEvents(startdate=datetime.now(get_localzone()),
                                           duration=timedelta(minutes=SERVER_POLL_INTERVAL_MINUTES))
         except Exception as ex:
             speak('I am sorry ' + TITLE +
@@ -80,15 +81,15 @@ def main(argv):
             logging.info(ex)
             exit()
 
-        if eventList.count == 0:
+        if len(events) == 0:
             # No events found, sleep the default time
             due_time = timedelta(
                 minutes=SERVER_POLL_INTERVAL_MINUTES)
         else:
-            logging.info('You have ' + str(eventList.count) +
+            logging.info('You have ' + str(len(events)) +
                          ' events in the list.')
             # Only take into account the first event on the list
-            firstEvent = eventList.events[0]
+            firstEvent = events[0]
             if validEvent(firstEvent):
                 event_info = "{start} {stop} - {subject} - {location}".format(
                     start=firstEvent.start,

@@ -42,9 +42,9 @@ class CalendarPyExchange:
         startdate = startdate.astimezone(timezone.utc)
         connection = ExchangeNTLMAuthConnection(url=self.url, username=self.username, password=self.password)
         service = Exchange2010Service(connection)
-        events = service.calendar().list_events(
+        eventList = service.calendar().list_events(
             start=startdate,
             end=startdate + duration,
             details=True
         )
-        return events
+        return eventList.events

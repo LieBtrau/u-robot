@@ -43,4 +43,4 @@ class CalendarExchangeLib:
         # Convert to UTC
         startdate = startdate.astimezone(timezone.utc)
         items = self.test_account.calendar.view(start=startdate, end=startdate + duration)
-        return items
+        return list(items)
