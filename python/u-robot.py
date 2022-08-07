@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+
+# Installation:
+#	sudo apt install espeak libxml2 libxml2-dev libxslt1-dev python3-pip python-dev zlib1g-dev && pip install configparser exchangelib lxml pyexchange pyserial pyttsx3 tzlocal
+
 from datetime import datetime, timedelta, timezone
 from tzlocal import get_localzone
 #from CalendarPyExchange import CalendarPyExchange
